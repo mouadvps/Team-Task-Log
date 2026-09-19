@@ -38,7 +38,7 @@
   $("t-astr").addEventListener("click", function () { setTab("astreinte"); });
   if (location.hash === "#astreinte") setTab("astreinte");
 
-  if (!window.firebase || !firebase.apps || !firebase.apps.length) return;
+  if (!window.firebase || !firebase.apps || !firebase.apps.length) { var an = $("astr-now"); if (an) an.innerHTML = "<h2>Astreinte this week</h2><p class=\"note\">Astreinte data is not available (Firebase not initialised).</p>"; return; }
   var fs = firebase.firestore(), auth = firebase.auth();
 
   // ---------- Dates ----------
@@ -374,15 +374,24 @@
     $("a-pay").innerHTML = h;
   }
   // ---------- "This week" card on the main dashboard ----------
-  function currentWeek() {
-    var today = iso(new Date()), best = null;
+  var DAY_START = 8, DAY_END = 17; // duty window 08:00-17:00, night on-call 17:00-08:00
+  function weekFor(day) {
+    var t = iso(day), best = null;
     Object.keys(docs).forEach(function (k) {
       (docs[k].weeks || []).forEach(function (w) {
-        var end = iso(addD(parseIso(w.start), 6));
-        if (w.start <= today && today <= end && (!best || (docs[k].updated || 0) >= best.upd)) best = { w: w, key: k, upd: docs[k].updated || 0 };
+        if (w.start <= t && t <= iso(addD(parseIso(w.start), 6)) && (!best || (docs[k].updated || 0) >= best.upd)) best = { w: w, key: k, upd: docs[k].updated || 0 };
       });
     });
     return best;
+  }
+  function currentWeek() { return weekFor(new Date()); }
+  function dayOf(date) { var cw = weekFor(date); if (!cw) return null; return cw.w.days[(date.getDay() + 6) % 7] || { jour: "", nuit: "" }; }
+  function hhmm(n) { return pad(n) + ":00"; }
+  function nowSlot() {
+    var d = new Date(), h = d.getHours(), y = addD(d, -1), dd;
+    if (h >= DAY_START && h < DAY_END) { dd = dayOf(d); return { kind: "day", who: names(dd && dd.jour), label: "Day duty", until: hhmm(DAY_END), next: "Night on-call: " + names(dd && dd.nuit).map(fullName).join(" + ") }; }
+    if (h >= DAY_END) { dd = dayOf(d); var tm = dayOf(addD(d, 1)); return { kind: "night", who: names(dd && dd.nuit), label: "Night on-call", until: hhmm(DAY_START) + " tomorrow", next: "Tomorrow night: " + (tm ? names(tm.nuit).map(fullName).join(" + ") || "not assigned" : "not planned") }; }
+    dd = dayOf(y); return { kind: "night", who: names(dd && dd.nuit), label: "Night on-call", until: hhmm(DAY_START), next: "" };
   }
   function renderNow() {
     var el = $("astr-now"); if (!el) return;
@@ -391,20 +400,23 @@
       el.innerHTML = h + '</div><p class="note" style="margin:0">No astreinte planning has been published for this week yet.</p>';
       return;
     }
-    var w = cw.w, todayIdx = (new Date().getDay() + 6) % 7, tn = names(w.days[todayIdx] && w.days[todayIdx].nuit), tj = names(w.days[todayIdx] && w.days[todayIdx].jour);
+    var w = cw.w, todayIdx = (new Date().getDay() + 6) % 7, sl = nowSlot(), weekday = todayIdx < 5;
     h += '<span class="note">' + esc(longRange(w.start)) + '</span><button class="btn ghost" data-go="' + cw.key + '" type="button">Open planning</button></div>';
-    h += '<p class="tonight">On call tonight: <b>' + (tn.length ? esc(tn.map(fullName).join(" + ")) : "not assigned") + "</b>" +
-      (todayIdx >= 5 ? ' &middot; Day duty: <b>' + (tj.length ? esc(tj.map(fullName).join(" + ")) : "not assigned") + "</b>" : "") + "</p>";
+    h += '<p class="tonight"><span class="note">On call now (' + esc(sl.label) + ', until ' + esc(sl.until) + '):</span> <b>' +
+      (sl.who.length ? esc(sl.who.map(fullName).join(" + ")) : "not assigned") + "</b></p>";
+    if (sl.next) h += '<p class="note" style="margin:0 0 8px">' + esc(sl.next) + "</p>";
+    h += '<p class="note" style="margin:0 0 8px">Hours: day duty ' + hhmm(DAY_START) + '-' + hhmm(DAY_END) + ', night on-call ' + hhmm(DAY_END) + '-' + hhmm(DAY_START) + '.</p>';
     h += '<div class="tablewrap"><div class="strip">';
     for (var j = 0; j < 7; j++) {
       var dd = w.days[j] || { jour: "", nuit: "" }, nn = names(dd.nuit), jj = names(dd.jour);
       h += '<div class="dcell' + (j === todayIdx ? " today" : "") + (j >= 5 ? " we" : "") + '"><span class="dh">' + DAYS[j].slice(0, 3) + " " + shortDate(addD(parseIso(w.start), j)) + "</span>" +
-        (j >= 5 ? '<span class="lb">Jour</span><span class="nm">' + esc(jj.join(", ") || "-") + "</span>" : "") +
+        '<span class="lb">Jour</span><span class="nm">' + esc(jj.map(function (n) { return n.split(" ")[0]; }).join(", ") || "-") + "</span>" +
         '<span class="lb">Nuit</span><span class="nm">' + esc(nn.join(", ") || "-") + "</span></div>";
     }
     h += "</div></div>";
     el.innerHTML = h;
   }
+  setInterval(function () { if (!document.hidden) renderNow(); }, 60000);
   if ($("astr-now")) $("astr-now").addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest("[data-go]") : null; if (!b) return;
     cur = b.dataset.go; sub = "plan"; setTab("astreinte"); renderAll();
