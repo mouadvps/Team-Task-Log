@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only signed-in team members can read or change tasks.
+    match /tasks/{taskId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.title is string
+        && request.resource.data.owner is string
+        && request.resource.data.hours is number;
+      allow delete: if request.auth != null;
+    }
+  }
+}
