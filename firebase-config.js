@@ -1,8 +1,17 @@
-// Paste your Firebase web app settings here (Firebase console > Project settings > Your apps > Web app).
-// These values are not secrets: access is protected by sign-in and the Firestore rules, not by hiding this file.
-window.FIREBASE_CONFIG = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  appId: "PASTE_APP_ID"
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDWahP2AQlhMP0jpSxVwt_bz3-ggF6MmE4",
+  authDomain: "vps-team-log.firebaseapp.com",
+  projectId: "vps-team-log",
+  storageBucket: "vps-team-log.firebasestorage.app",
+  messagingSenderId: "52425981569",
+  appId: "1:52425981569:web:72a1185771776c3cfc5780"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
