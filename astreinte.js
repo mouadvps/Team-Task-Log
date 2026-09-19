@@ -123,7 +123,7 @@
   function blankWeek(start) {
     var days = [];
     for (var i = 0; i < 7; i++) days.push({ jour: "", nuit: "" });
-    return { start: start, payMonth: natMonth(start), days: days };
+    return { start: start, payMonth: natMonth(start), absent: [], days: days };
   }
   // When a week already exists in another month's document, reuse it (boundary weeks).
   function existingWeek(start, exceptKey) {
@@ -146,6 +146,21 @@
     var data = clone(docs[key]);
     queue = queue.then(function () { return fs.collection("astreinte").doc(key).set(data); })
       .then(function () { msg(""); }, function () { msg("Could not save. Check your connection and the Firestore rules, then try again."); });
+  }
+
+  // Day team Mon-Fri = everybody except the night person and anyone marked absent that week.
+  function restOf(w, j) {
+    var night = names(w.days[j] && w.days[j].nuit), off = (w.absent || []).map(canon);
+    return TEAM.map(function (m) { return m.first; }).filter(function (n) { return night.indexOf(n) < 0 && off.indexOf(n) < 0; }).join(", ");
+  }
+  function refillDays(w, only) {
+    for (var j = 0; j < 5; j++) if (only == null || only === j) w.days[j].jour = restOf(w, j);
+  }
+  function selOptions(val) {
+    var v = names(val).join(", "), h = '<option value=""></option>', found = false;
+    TEAM.forEach(function (m) { var sel = m.first === v; if (sel) found = true; h += '<option value="' + m.first + '"' + (sel ? " selected" : "") + ">" + m.first + "</option>"; });
+    if (v && !found) h += '<option value="' + escA(v) + '" selected>' + esc(v) + "</option>";
+    return h;
   }
 
   function saveAdmin(key, rates) {
@@ -273,6 +288,7 @@
     $("a-tab-pay").setAttribute("aria-pressed", sub === "pay" ? "true" : "false");
     $("a-plan").hidden = sub !== "plan";
     $("a-pay").hidden = sub !== "pay";
+    renderNow();
     keepFocus(function () { if (sub === "plan") renderPlan(); else renderPay(); });
   }
   function renderPlan() {
@@ -290,31 +306,39 @@
       $("a-plan").innerHTML = h;
       return;
     }
+    if (!ro) h += '<p class="note">Pick the night person for each week. The day team (Mon-Fri) fills itself with everybody else; mark people as absent to leave them out.</p>';
     var nWarn = 0;
     d.weeks.forEach(function (w) { nWarn += weekWarnings(w).length; });
     if (nWarn && !ro) h += '<p class="alert" role="alert">' + nWarn + " rule conflict" + (nWarn > 1 ? "s" : "") + " in this planning. See the rows marked Conflict.</p>";
     d.weeks.forEach(function (w, i) {
       var warns = weekWarnings(w);
-      var nat = natMonth(w.start), pm = w.payMonth || nat;
+      var nat = natMonth(w.start), pm = w.payMonth || nat, off = (w.absent || []).map(canon);
       var payOpts = [shiftKey(nat, -1), nat, shiftKey(nat, 1)].map(function (k) {
         return '<option value="' + k + '"' + (k === pm ? " selected" : "") + ">" + keyLabel(k) + "</option>";
       }).join("");
+      var chips = TEAM.map(function (m) {
+        var on = off.indexOf(m.first) >= 0;
+        return '<button type="button" class="pick" data-act="absent" data-w="' + i + '" data-n="' + m.first + '" aria-pressed="' + (on ? "true" : "false") + '">' + m.first + "</button>";
+      }).join("");
       h += '<section class="panel wk"><div class="wkhead"><h2>S' + (i + 1) + " &middot; " + esc(longRange(w.start)) + "</h2>" +
-        (ro ? "" : '<label class="inl">Night Mon-Fri<select data-act="bulk" data-w="' + i + '">' + teamOptions("") + "</select></label>" +
+        (ro ? "" : '<label class="inl">Night Mon-Fri<select data-act="bulk" data-w="' + i + '">' + selOptions("") + "</select></label>" +
           '<label class="inl">Paid in<select data-act="pay" data-w="' + i + '">' + payOpts + "</select></label>" +
           '<button class="btn ghost" data-act="delwk" data-w="' + i + '" type="button">Remove week</button>') + "</div>" +
+        (ro ? (off.length ? '<p class="note">Absent: ' + esc(off.join(", ")) + "</p>" : "") : '<div class="absent"><span class="note">Absent this week:</span>' + chips + "</div>") +
         '<div class="tablewrap"><table class="days"><thead><tr><th>Day</th><th>Jour (day team)</th><th>Astreinte nuit</th><th></th></tr></thead><tbody>';
       for (var j = 0; j < 7; j++) {
         var day = w.days[j] || { jour: "", nuit: "" };
         var wj = warns.filter(function (x) { return x.day === j; })[0];
+        var jourCell = j >= 5
+          ? '<select data-act="jour" data-w="' + i + '" data-d="' + j + '"' + dis + ' aria-label="' + DAYS[j] + ' day duty">' + selOptions(day.jour) + "</select>"
+          : '<input data-act="jour" data-w="' + i + '" data-d="' + j + '" value="' + escA(day.jour) + '"' + dis + ' aria-label="' + DAYS[j] + ' day team">';
         h += '<tr class="' + (j >= 5 ? "we" : "") + '"><td class="dn">' + DAYS[j] + '<br><span class="note">' + shortDate(addD(parseIso(w.start), j)) + "</span></td>" +
-          '<td><input data-act="jour" data-w="' + i + '" data-d="' + j + '" value="' + escA(day.jour) + '"' + (j >= 5 ? ' list="a-tm"' : "") + dis + ' aria-label="' + DAYS[j] + ' day team"></td>' +
-          '<td><input data-act="nuit" data-w="' + i + '" data-d="' + j + '" value="' + escA(day.nuit) + '" list="a-tm"' + dis + ' aria-label="' + DAYS[j] + ' night"></td>' +
+          "<td>" + jourCell + "</td>" +
+          '<td><select data-act="nuit" data-w="' + i + '" data-d="' + j + '"' + dis + ' aria-label="' + DAYS[j] + ' night">' + selOptions(day.nuit) + "</select></td>" +
           "<td>" + (wj && !ro ? '<span class="chip High" title="' + escA(wj.text) + '">Conflict</span> <span class="note">' + esc(wj.text) + "</span>" : "") + "</td></tr>";
       }
       h += "</tbody></table></div></section>";
     });
-    h += '<datalist id="a-tm">' + TEAM.map(function (m) { return '<option value="' + m.first + '">'; }).join("") + "</datalist>";
     $("a-plan").innerHTML = h;
   }
   function renderPay() {
@@ -349,6 +373,44 @@
     h += '<tr class="sum"><td>Total</td><td></td><td></td><td></td><td class="num"><b>' + fmt(rep.sum) + "</b></td></tr></tbody></table></div></section>";
     $("a-pay").innerHTML = h;
   }
+  // ---------- "This week" card on the main dashboard ----------
+  function currentWeek() {
+    var today = iso(new Date()), best = null;
+    Object.keys(docs).forEach(function (k) {
+      (docs[k].weeks || []).forEach(function (w) {
+        var end = iso(addD(parseIso(w.start), 6));
+        if (w.start <= today && today <= end && (!best || (docs[k].updated || 0) >= best.upd)) best = { w: w, key: k, upd: docs[k].updated || 0 };
+      });
+    });
+    return best;
+  }
+  function renderNow() {
+    var el = $("astr-now"); if (!el) return;
+    var cw = currentWeek(), h = '<div class="nowhead"><h2>Astreinte this week</h2>';
+    if (!cw) {
+      el.innerHTML = h + '</div><p class="note" style="margin:0">No astreinte planning has been published for this week yet.</p>';
+      return;
+    }
+    var w = cw.w, todayIdx = (new Date().getDay() + 6) % 7, tn = names(w.days[todayIdx] && w.days[todayIdx].nuit), tj = names(w.days[todayIdx] && w.days[todayIdx].jour);
+    h += '<span class="note">' + esc(longRange(w.start)) + '</span><button class="btn ghost" data-go="' + cw.key + '" type="button">Open planning</button></div>';
+    h += '<p class="tonight">On call tonight: <b>' + (tn.length ? esc(tn.map(fullName).join(" + ")) : "not assigned") + "</b>" +
+      (todayIdx >= 5 ? ' &middot; Day duty: <b>' + (tj.length ? esc(tj.map(fullName).join(" + ")) : "not assigned") + "</b>" : "") + "</p>";
+    h += '<div class="tablewrap"><div class="strip">';
+    for (var j = 0; j < 7; j++) {
+      var dd = w.days[j] || { jour: "", nuit: "" }, nn = names(dd.nuit), jj = names(dd.jour);
+      h += '<div class="dcell' + (j === todayIdx ? " today" : "") + (j >= 5 ? " we" : "") + '"><span class="dh">' + DAYS[j].slice(0, 3) + " " + shortDate(addD(parseIso(w.start), j)) + "</span>" +
+        (j >= 5 ? '<span class="lb">Jour</span><span class="nm">' + esc(jj.join(", ") || "-") + "</span>" : "") +
+        '<span class="lb">Nuit</span><span class="nm">' + esc(nn.join(", ") || "-") + "</span></div>";
+    }
+    h += "</div></div>";
+    el.innerHTML = h;
+  }
+  if ($("astr-now")) $("astr-now").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-go]") : null; if (!b) return;
+    cur = b.dataset.go; sub = "plan"; setTab("astreinte"); renderAll();
+  });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) renderNow(); });
+
   // ---------- Import / export ----------
   function parseSheet(ws) {
     var rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: "" });
@@ -378,7 +440,7 @@
         var s0 = firstStart(cur), d = ensureDoc(cur);
         d.weeks = weeks.map(function (w, n) {
           var st = iso(addD(s0, 7 * n));
-          return { start: st, payMonth: natMonth(st), days: w.days };
+          return { start: st, payMonth: natMonth(st), absent: [], days: w.days };
         });
         save(cur); msg("Imported " + weeks.length + " weeks into " + keyLabel(cur) + "."); renderAll();
       } catch (e) { msg("Could not read this file. Use an .xlsx planning like your monthly Excel."); }
@@ -469,6 +531,10 @@
     } else if (a === "addwk" && d) {
       var last = d.weeks.length ? iso(addD(parseIso(d.weeks[d.weeks.length - 1].start), 7)) : iso(firstStart(cur));
       d.weeks.push(newWeek(last, cur)); save(cur); renderAll();
+    } else if (a === "absent" && d && d.weeks[i]) {
+      var wk = d.weeks[i], nm = t.dataset.n, ab = (wk.absent || []).map(canon), at = ab.indexOf(nm);
+      if (at >= 0) ab.splice(at, 1); else ab.push(nm);
+      wk.absent = ab; refillDays(wk); save(cur); renderAll();
     } else if (a === "delwk" && d) {
       if (confirm("Remove this week from the planning?")) { d.weeks.splice(i, 1); save(cur); renderAll(); }
     }
@@ -485,9 +551,11 @@
     }
     if (!d || !d.weeks[i]) return;
     if (a === "jour" || a === "nuit") {
-      var val = names(t.value).join(", "); d.weeks[i].days[j][a] = val; t.value = val; save(cur); renderAll();
+      var val = names(t.value).join(", "); d.weeks[i].days[j][a] = val; t.value = val;
+      if (a === "nuit" && j < 5) refillDays(d.weeks[i], j);
+      save(cur); renderAll();
     } else if (a === "bulk") {
-      if (t.value) { for (var k = 0; k < 5; k++) d.weeks[i].days[k].nuit = t.value; save(cur); }
+      if (t.value) { for (var k = 0; k < 5; k++) d.weeks[i].days[k].nuit = t.value; refillDays(d.weeks[i]); save(cur); }
       renderAll();
     } else if (a === "pay") {
       d.weeks[i].payMonth = t.value; save(cur); renderAll();

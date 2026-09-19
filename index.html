@@ -98,6 +98,20 @@ table.pay{min-width:560px}
 table.pay th.num{text-align:right}
 table.pay tr.amts th{color:var(--accent);font-family:var(--mono);text-transform:none;letter-spacing:0}
 table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
+.pick{font:inherit;font-size:12px;font-weight:500;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:99px;padding:4px 12px;cursor:pointer}
+.pick[aria-pressed="true"]{background:var(--high-soft);color:var(--high);border-color:var(--high)}
+.absent{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.nowhead{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.nowhead h2{margin:0}
+.nowhead .btn.ghost{margin-left:auto}
+.tonight{margin:0 0 10px;font-size:15px}
+.strip{display:grid;grid-template-columns:repeat(7,minmax(96px,1fr));gap:6px;min-width:700px}
+.dcell{border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:2px;background:var(--surface)}
+.dcell.we{background:var(--accent-soft)}
+.dcell.today{border:2px solid var(--accent)}
+.dcell .dh{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.dcell .lb{font-size:10px;color:var(--muted);margin-top:3px}
+.dcell .nm{font-weight:600;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -140,6 +154,8 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
       <button class="btn" id="pdf" type="button">Download PDF report</button>
     </div>
   </div>
+
+  <section class="panel now" id="astr-now"></section>
 
   <div class="kpis" id="kpis"></div>
 
@@ -284,10 +300,10 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
     }).join(""):'<tr><td colspan="7" class="empty">No tasks match.</td></tr>';
   }
 
-  document.querySelectorAll(".seg button").forEach(function(b){
+  document.querySelectorAll(".seg button[data-p]").forEach(function(b){
     b.addEventListener("click",function(){
       period=b.dataset.p;
-      document.querySelectorAll(".seg button").forEach(function(x){x.setAttribute("aria-pressed",x===b?"true":"false")});
+      document.querySelectorAll(".seg button[data-p]").forEach(function(x){x.setAttribute("aria-pressed",x===b?"true":"false")});
       render();
     });
   });
