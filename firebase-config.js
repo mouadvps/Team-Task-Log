@@ -1,10 +1,6 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
+// Firebase web app settings for the vps-team-log project.
+// These values are not secrets: access is protected by sign-in and the Firestore rules.
+window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyDWahP2AQlhMP0jpSxVwt_bz3-ggF6MmE4",
   authDomain: "vps-team-log.firebaseapp.com",
   projectId: "vps-team-log",
@@ -12,6 +8,4 @@ const firebaseConfig = {
   messagingSenderId: "52425981569",
   appId: "1:52425981569:web:72a1185771776c3cfc5780"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+ 
