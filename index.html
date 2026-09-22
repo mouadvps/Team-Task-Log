@@ -62,7 +62,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 form{display:grid;grid-template-columns:2fr 1fr 1fr 90px 1fr 1fr auto;gap:8px;align-items:end}
 @media(max-width:900px){form{grid-template-columns:1fr 1fr}form .wide{grid-column:1/-1}}
 label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
-input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical}
 .btn{font:inherit;font-weight:600;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
 .btn.ghost{background:transparent;color:var(--muted);padding:4px 8px;font-weight:500}
 .btn.ghost:hover{color:var(--high)}
@@ -132,6 +133,7 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
     <div class="seg" role="group" aria-label="Section">
       <button id="t-tasks" type="button" aria-pressed="true">Tasks</button>
       <button id="t-astr" type="button" aria-pressed="false">Astreinte</button>
+      <button id="t-hr" type="button" aria-pressed="false">HR</button>
     </div>
     <button class="btn ghost" id="out" type="button">Sign out</button>
   </nav>
@@ -212,6 +214,90 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
   <div class="stack" id="a-plan"></div>
   <div class="stack" id="a-pay" hidden></div>
 </section>
+<section class="stack" id="view-hr" hidden>
+  <div class="top">
+    <div>
+      <h1>HR</h1>
+      <p class="sub">Leave, sick days and security/operational incidents for the team.</p>
+    </div>
+    <div class="seg" role="group" aria-label="HR view">
+      <button id="hr-tab-leaves" type="button" aria-pressed="true">Leave &amp; sick days</button>
+      <button id="hr-tab-inc" type="button" aria-pressed="false">Incidents</button>
+    </div>
+  </div>
+  <p class="note" id="hr-msg" role="status"></p>
+
+  <div class="stack" id="hr-leaves">
+    <div class="kpis" id="hr-lv-kpis"></div>
+    <section class="panel now" id="hr-lv-now"></section>
+    <section class="panel">
+      <h2>Declare leave / sick day</h2>
+      <form id="lv-f">
+        <label>Name<input id="lv-name" required maxlength="40" list="hr-owners" placeholder="Name"><datalist id="hr-owners"></datalist></label>
+        <label>Type<select id="lv-type"><option>Congé payé</option><option>Maladie</option><option>Congé sans solde</option><option>Autre</option></select></label>
+        <label>Start<input id="lv-start" type="date" required></label>
+        <label>End<input id="lv-end" type="date" required></label>
+        <label class="wide">Note<input id="lv-note" maxlength="140" placeholder="Optional"></label>
+        <button class="btn" type="submit" id="lv-go">Add</button>
+      </form>
+      <p class="note" id="lv-msg" role="status"></p>
+    </section>
+    <section class="panel">
+      <h2>Leave &amp; sick days log</h2>
+      <div class="filters">
+        <select id="lv-fp" aria-label="Filter by person"><option value="">Everyone</option></select>
+        <select id="lv-ft" aria-label="Filter by type"><option value="">Any type</option><option>Congé payé</option><option>Maladie</option><option>Congé sans solde</option><option>Autre</option></select>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Name</th><th>Type</th><th>Start</th><th>End</th><th class="num">Days</th><th>Status</th><th>Note</th><th></th></tr></thead>
+        <tbody id="lv-rows"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <div class="stack" id="hr-inc" hidden>
+    <div class="kpis" id="inc-kpis"></div>
+    <section class="panel">
+      <h2>Report an incident</h2>
+      <form id="inc-f" class="stack" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">
+          <label>Date reported<input id="inc-decl" type="date" required></label>
+          <label>Date occurred<input id="inc-occ" type="date" required></label>
+          <label>Category<select id="inc-cat"><option>Système et réseau</option><option>Sécurité des données</option><option>Ressources humaines</option><option>Éthique</option><option selected>Opérationnel</option></select></label>
+          <label>Severity<select id="inc-sev"><option>Mineur</option><option selected>Modéré</option><option>Majeur</option></select></label>
+          <label>Reported by<input id="inc-declarant" maxlength="60" placeholder="Name or alert source"></label>
+          <label>External resources involved<select id="inc-ext"><option>Non</option><option>Oui</option></select></label>
+          <label>Downtime (hours)<input id="inc-hours" type="number" min="0" step="0.25" value="0"></label>
+          <label>Status<select id="inc-status"><option selected>Ouvert</option><option>Clôturé</option></select></label>
+        </div>
+        <label class="wide">Details<textarea id="inc-details" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)" placeholder="What happened"></textarea></label>
+        <label class="wide">Cause<textarea id="inc-causes" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></textarea></label>
+        <label class="wide">Impact<textarea id="inc-impact" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></textarea></label>
+        <label class="wide">Temporary fix<textarea id="inc-prov" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></textarea></label>
+        <label class="wide">Permanent fix<textarea id="inc-def" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></textarea></label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">
+          <label>Owner (name)<input id="inc-resp" maxlength="60" placeholder="e.g. Mouad ABOUSSIBER"></label>
+          <label>Owner title<input id="inc-resptitle" maxlength="60"></label>
+          <label>Closed by<input id="inc-closedby" maxlength="60"></label>
+          <label>Date closed<input id="inc-closeddate" type="date"></label>
+        </div>
+        <div><button class="btn" type="submit" id="inc-go">Save incident</button></div>
+      </form>
+      <p class="note" id="inc-msg" role="status"></p>
+    </section>
+    <section class="panel">
+      <h2>Incident log</h2>
+      <div class="filters">
+        <select id="inc-fsev" aria-label="Filter by severity"><option value="">Any severity</option><option>Mineur</option><option>Modéré</option><option>Majeur</option></select>
+        <select id="inc-fstatus" aria-label="Filter by status"><option value="">Any status</option><option>Ouvert</option><option>Clôturé</option></select>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Date</th><th>Category</th><th>Severity</th><th>Details</th><th class="num">Downtime</th><th>Status</th><th></th></tr></thead>
+        <tbody id="inc-rows"></tbody>
+      </table></div>
+    </section>
+  </div>
+</section>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -249,7 +335,9 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
     var hours=list.reduce(function(a,t){return a+t.hours},0);
     var high=list.filter(function(t){return t.priority==="High"}).length;
     var owners={};list.forEach(function(t){owners[t.owner]=1});
+    var todayKey=iso(today), todayCount=tasks.filter(function(t){return t.date===todayKey}).length;
     $("kpis").innerHTML =
+      '<div class="kpi"><b>'+todayCount+'</b><span>Tasks completed today</span></div>'+
       '<div class="kpi"><b>'+list.length+'</b><span>Tasks completed</span></div>'+
       '<div class="kpi"><b>'+(Math.round(hours*10)/10)+'</b><span>Hours logged</span></div>'+
       '<div class="kpi"><b>'+high+'</b><span>High-priority tasks closed</span></div>'+
@@ -417,5 +505,6 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
 })();
 </script>
 <script src="astreinte.js"></script>
+<script src="hr.js"></script>
 </body>
 </html>

@@ -30,13 +30,18 @@
     view = v;
     $("view-tasks").hidden = v !== "tasks";
     $("view-astreinte").hidden = v !== "astreinte";
+    if ($("view-hr")) $("view-hr").hidden = v !== "hr";
     $("t-tasks").setAttribute("aria-pressed", v === "tasks" ? "true" : "false");
     $("t-astr").setAttribute("aria-pressed", v === "astreinte" ? "true" : "false");
-    try { history.replaceState(null, "", v === "astreinte" ? "#astreinte" : location.pathname + location.search); } catch (e) {}
+    if ($("t-hr")) $("t-hr").setAttribute("aria-pressed", v === "hr" ? "true" : "false");
+    try { history.replaceState(null, "", v === "astreinte" ? "#astreinte" : v === "hr" ? "#hr" : location.pathname + location.search); } catch (e) {}
+    if (v === "hr" && window.renderHR) window.renderHR();
   }
   $("t-tasks").addEventListener("click", function () { setTab("tasks"); });
   $("t-astr").addEventListener("click", function () { setTab("astreinte"); });
+  if ($("t-hr")) $("t-hr").addEventListener("click", function () { setTab("hr"); });
   if (location.hash === "#astreinte") setTab("astreinte");
+  if (location.hash === "#hr") setTab("hr");
 
   if (!window.firebase || !firebase.apps || !firebase.apps.length) { var an = $("astr-now"); if (an) an.innerHTML = "<h2>Astreinte this week</h2><p class=\"note\">Astreinte data is not available (Firebase not initialised).</p>"; return; }
   var fs = firebase.firestore(), auth = firebase.auth();
