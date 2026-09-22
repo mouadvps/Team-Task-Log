@@ -27,24 +27,13 @@
   function today0() { var t = new Date(); t.setHours(0, 0, 0, 0); return t; }
   function monthKey(s) { return String(s || "").slice(0, 7); }
 
-  // ---------- Sub-tabs ----------
-  var sub = "leaves";
-  function setSub(v) {
-    sub = v;
-    $("hr-leaves").hidden = v !== "leaves";
-    $("hr-inc").hidden = v !== "incidents";
-    $("hr-tab-leaves").setAttribute("aria-pressed", v === "leaves" ? "true" : "false");
-    $("hr-tab-inc").setAttribute("aria-pressed", v === "incidents" ? "true" : "false");
-  }
-  $("hr-tab-leaves").addEventListener("click", function () { setSub("leaves"); });
-  $("hr-tab-inc").addEventListener("click", function () { setSub("incidents"); });
-
   $("hr-owners").innerHTML = TEAM.map(function (n) { return '<option value="' + esc(n) + '">'; }).join("");
 
   var leaves = {}, incidents = {}, unsubL = null, unsubI = null;
 
   function stable(o) { try { return JSON.stringify(o); } catch (e) { return String(Math.random()); } }
   function msg(t) { var el = $("hr-msg"); if (el) el.textContent = t || ""; }
+  function incMsg(t) { var el = $("inc-msg-top"); if (el) el.textContent = t || ""; }
 
   // ---------- Leave & sick days ----------
   function renderLeaves() {
@@ -118,6 +107,8 @@
     var open = all.filter(function (i) { return i.status !== "Clôturé"; });
     var hours = all.reduce(function (a, i) { return a + (parseFloat(i.hours) || 0); }, 0);
     var major = all.filter(function (i) { return i.severity === "Majeur"; }).length;
+    window.OPEN_INCIDENTS_COUNT = open.length;
+    if (window.renderTasksKPIs) window.renderTasksKPIs();
     $("inc-kpis").innerHTML =
       '<div class="kpi"><b>' + thisMonth.length + '</b><span>Incidents this month</span></div>' +
       '<div class="kpi"><b>' + open.length + '</b><span>Open incidents</span></div>' +
@@ -222,8 +213,7 @@
     el.innerHTML = h;
     var b = $("inc-now-go");
     if (b) b.addEventListener("click", function () {
-      if (window.APP_SET_TAB) window.APP_SET_TAB("hr");
-      setSub("incidents");
+      if (window.APP_SET_TAB) window.APP_SET_TAB("incidents");
     });
   }
 
@@ -250,7 +240,7 @@
       var nd = {}; snap.docs.forEach(function (x) { nd[x.id] = x.data(); });
       if (stable(nd) === stable(incidents)) return;
       incidents = nd; window.renderHR();
-    }, function () { msg("Cannot read incident data. Publish the updated Firestore rules (see README) and reload."); });
+    }, function () { incMsg("Cannot read incident data. Publish the updated Firestore rules (see README) and reload."); });
     window.renderHR();
   });
 })();

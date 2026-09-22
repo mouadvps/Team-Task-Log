@@ -139,6 +139,7 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
       <button id="t-tasks" type="button" aria-pressed="true">Tasks</button>
       <button id="t-astr" type="button" aria-pressed="false">Astreinte</button>
       <button id="t-hr" type="button" aria-pressed="false">HR</button>
+      <button id="t-inc" type="button" aria-pressed="false">Incidents</button>
     </div>
     <button class="btn ghost" id="out" type="button">Sign out</button>
   </nav>
@@ -224,11 +225,7 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
   <div class="top">
     <div>
       <h1>HR</h1>
-      <p class="sub">Leave, sick days and security/operational incidents for the team.</p>
-    </div>
-    <div class="seg" role="group" aria-label="HR view">
-      <button id="hr-tab-leaves" type="button" aria-pressed="true">Leave &amp; sick days</button>
-      <button id="hr-tab-inc" type="button" aria-pressed="false">Incidents</button>
+      <p class="sub">Leave and sick days for the team.</p>
     </div>
   </div>
   <p class="note" id="hr-msg" role="status"></p>
@@ -260,8 +257,17 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
       </table></div>
     </section>
   </div>
+</section>
+<section class="stack" id="view-incidents" hidden>
+  <div class="top">
+    <div>
+      <h1>Incidents</h1>
+      <p class="sub">Security and operational incident reports for the team.</p>
+    </div>
+  </div>
+  <p class="note" id="inc-msg-top" role="status"></p>
 
-  <div class="stack" id="hr-inc" hidden>
+  <div class="stack" id="hr-inc">
     <div class="kpis" id="inc-kpis"></div>
     <section class="panel">
       <h2>Report an incident</h2>
@@ -336,6 +342,7 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
   }
   function inRange(t){var r=range(),d=parse(t.date);return d>=r[0]&&d<=r[1]}
 
+  window.renderTasksKPIs=function(){render()};
   function render(){
     var r=range();
     $("range").textContent = period==="all" ? "All logged tasks." : fmtDay(iso(r[0]))+" to "+fmtDay(iso(r[1]))+" · completed work by person, updated live.";
@@ -344,12 +351,14 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
     var high=list.filter(function(t){return t.priority==="High"}).length;
     var owners={};list.forEach(function(t){owners[t.owner]=1});
     var todayKey=iso(today), todayCount=tasks.filter(function(t){return t.date===todayKey}).length;
+    var openInc=window.OPEN_INCIDENTS_COUNT||0;
     $("kpis").innerHTML =
       '<div class="kpi"><b>'+todayCount+'</b><span>Tasks completed today</span></div>'+
       '<div class="kpi"><b>'+list.length+'</b><span>Tasks completed</span></div>'+
       '<div class="kpi"><b>'+(Math.round(hours*10)/10)+'</b><span>Hours logged</span></div>'+
       '<div class="kpi"><b>'+high+'</b><span>High-priority tasks closed</span></div>'+
-      '<div class="kpi"><b>'+Object.keys(owners).length+'</b><span>People contributing</span></div>';
+      '<div class="kpi"><b>'+Object.keys(owners).length+'</b><span>People contributing</span></div>'+
+      '<div class="kpi"><b style="'+(openInc?'color:var(--high)':'')+'">'+openInc+'</b><span>Open incidents</span></div>';
 
     // per person
     var by={};

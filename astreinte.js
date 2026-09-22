@@ -31,17 +31,21 @@
     $("view-tasks").hidden = v !== "tasks";
     $("view-astreinte").hidden = v !== "astreinte";
     if ($("view-hr")) $("view-hr").hidden = v !== "hr";
+    if ($("view-incidents")) $("view-incidents").hidden = v !== "incidents";
     $("t-tasks").setAttribute("aria-pressed", v === "tasks" ? "true" : "false");
     $("t-astr").setAttribute("aria-pressed", v === "astreinte" ? "true" : "false");
     if ($("t-hr")) $("t-hr").setAttribute("aria-pressed", v === "hr" ? "true" : "false");
-    try { history.replaceState(null, "", v === "astreinte" ? "#astreinte" : v === "hr" ? "#hr" : location.pathname + location.search); } catch (e) {}
-    if (v === "hr" && window.renderHR) window.renderHR();
+    if ($("t-inc")) $("t-inc").setAttribute("aria-pressed", v === "incidents" ? "true" : "false");
+    try { history.replaceState(null, "", v === "astreinte" ? "#astreinte" : v === "hr" ? "#hr" : v === "incidents" ? "#incidents" : location.pathname + location.search); } catch (e) {}
+    if ((v === "hr" || v === "incidents") && window.renderHR) window.renderHR();
   }
   $("t-tasks").addEventListener("click", function () { setTab("tasks"); });
   $("t-astr").addEventListener("click", function () { setTab("astreinte"); });
   if ($("t-hr")) $("t-hr").addEventListener("click", function () { setTab("hr"); });
+  if ($("t-inc")) $("t-inc").addEventListener("click", function () { setTab("incidents"); });
   if (location.hash === "#astreinte") setTab("astreinte");
   if (location.hash === "#hr") setTab("hr");
+  if (location.hash === "#incidents") setTab("incidents");
   window.APP_SET_TAB = setTab;
 
   if (!window.firebase || !firebase.apps || !firebase.apps.length) { var an = $("astr-now"); if (an) an.innerHTML = "<h2>Astreinte this week</h2><p class=\"note\">Astreinte data is not available (Firebase not initialised).</p>"; return; }
