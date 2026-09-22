@@ -138,8 +138,9 @@
       external: $("inc-ext").value, hours: parseFloat($("inc-hours").value) || 0, status: $("inc-status").value,
       details: $("inc-details").value.trim(), causes: $("inc-causes").value.trim(), impact: $("inc-impact").value.trim(),
       solProv: $("inc-prov").value.trim(), solDef: $("inc-def").value.trim(),
-      respName: $("inc-resp").value.trim(), respTitle: $("inc-resptitle").value.trim(),
-      closedBy: $("inc-closedby").value.trim(), closedDate: $("inc-closeddate").value,
+      respName: $("inc-resp").value.trim(), respTitle: $("inc-resptitle").value.trim(), actionDate: $("inc-actiondate").value,
+      followName: $("inc-followname").value.trim(), followTitle: $("inc-followtitle").value.trim(), followNotes: $("inc-follownotes").value.trim(),
+      closedBy: $("inc-closedby").value.trim(), closedByTitle: $("inc-closedbytitle").value.trim(), closedDate: $("inc-closeddate").value,
       created: Date.now()
     };
     if (!rec.declDate) return;
@@ -153,37 +154,123 @@
     });
   });
 
+  // Builds a one-page PDF laid out like the "Annexe 3 : Fiche Incident sécurité"
+  // form (bordered table, shaded section headers, checkbox-style options).
   function exportIncidentPdf(i) {
     if (!window.jspdf) { alert("PDF export is unavailable right now."); return; }
     var doc = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
-    var W = doc.internal.pageSize.getWidth(), x = 40, y = 50;
-    var logo = document.querySelector(".brand .logo");
-    try { if (logo && logo.src) doc.addImage(logo.src, "PNG", x, y - 25, 40, 40); } catch (e) {}
-    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.text("Fiche Incident sécurité", x + 50, y);
-    y += 26;
-    doc.setFontSize(10); doc.setFont("helvetica", "normal");
-    function line(label, value) {
-      doc.setFont("helvetica", "bold"); doc.text(label + ":", x, y);
-      doc.setFont("helvetica", "normal");
-      var split = doc.splitTextToSize(String(value || "-"), W - x - 160);
-      doc.text(split, x + 150, y);
-      y += Math.max(14, split.length * 12);
+    var pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
+    var x = 40, w = pageW - 80, y = 40;
+
+    function checkPage(need) {
+      if (y + need > pageH - 40) { doc.addPage(); y = 40; }
     }
-    line("Date de déclaration", fmtDay(i.declDate));
-    line("Date de survenue", fmtDay(i.occDate));
-    line("Catégorie", i.category);
-    line("Classification", i.severity);
-    line("Déclarant", i.declarant);
-    y += 4; line("Détails", i.details);
-    line("Causes", i.causes);
-    line("Analyse d'impact", i.impact);
-    line("Solution provisoire", i.solProv);
-    line("Solution définitive", i.solDef);
-    line("Ressources externes", i.external);
-    line("Responsable", (i.respName || "-") + (i.respTitle ? " (" + i.respTitle + ")" : ""));
-    line("Temps (downtime)", (i.hours || 0) + " heure(s)");
-    line("Statut", i.status);
-    if (i.status === "Clôturé") { line("Clôturé par", i.closedBy); line("Date de clôture", fmtDay(i.closedDate)); }
+    function box(h) { doc.setDrawColor(120); doc.setLineWidth(0.75); doc.rect(x, y, w, h); }
+    function sectionHeader(text, h) {
+      h = h || 20;
+      checkPage(h);
+      doc.setFillColor(222, 227, 245);
+      doc.rect(x, y, w, h, "F");
+      box(h);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(20, 25, 60);
+      doc.text(text, x + w / 2, y + h / 1.5, { align: "center" });
+      y += h;
+    }
+    function pairRow(labelA, valA, labelB, valB) {
+      var half = w / 2, h = 20;
+      checkPage(h);
+      doc.setDrawColor(150); doc.setLineWidth(0.5);
+      doc.rect(x, y, half, h); doc.rect(x + half, y, half, h);
+      doc.setFontSize(9); doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold"); doc.text(labelA + " :", x + 8, y + 13);
+      doc.setFont("helvetica", "normal"); doc.text(String(valA || "-"), x + 8 + doc.getTextWidth(labelA + " :  "), y + 13);
+      doc.setFont("helvetica", "bold"); doc.text(labelB + " :", x + half + 8, y + 13);
+      doc.setFont("helvetica", "normal"); doc.text(String(valB || "-"), x + half + 8 + doc.getTextWidth(labelB + " :  "), y + 13);
+      y += h;
+    }
+    function checkRow(options, selected) {
+      var h = 20;
+      checkPage(h);
+      box(h);
+      doc.setFontSize(9); doc.setTextColor(0, 0, 0);
+      var cx = x + 10, cy = y + 13, sq = 8;
+      options.forEach(function (opt) {
+        var on = opt === selected;
+        doc.setDrawColor(0); doc.setLineWidth(0.75);
+        doc.rect(cx, cy - sq + 1, sq, sq);
+        if (on) { doc.setFillColor(0, 0, 0); doc.rect(cx + 1.3, cy - sq + 2.3, sq - 2.6, sq - 2.6, "F"); }
+        doc.setFont("helvetica", on ? "bold" : "normal");
+        doc.text(opt, cx + sq + 4, cy);
+        cx += sq + 8 + doc.getTextWidth(opt) + 16;
+      });
+      y += h;
+    }
+    function textBlock(text, opts) {
+      opts = opts || {};
+      doc.setFont("helvetica", opts.bold ? "bold" : "normal"); doc.setFontSize(9);
+      var lines = doc.splitTextToSize(String(text || "-"), w - 16);
+      var h = Math.max(20, lines.length * 12 + 8);
+      checkPage(h);
+      box(h);
+      doc.setTextColor(0, 0, 0);
+      doc.text(lines, x + 8, y + 13);
+      y += h;
+    }
+    function labelledBlock(label, text) {
+      doc.setFontSize(9);
+      var full = doc.splitTextToSize(String(text || "-"), w - 16);
+      var h = Math.max(20, 14 + full.length * 12 + 6);
+      checkPage(h);
+      box(h);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold"); doc.text(label + " :", x + 8, y + 13);
+      doc.setFont("helvetica", "normal"); doc.text(full, x + 8, y + 13 + 14);
+      y += h;
+    }
+
+    // Header: logo + title
+    var logo = document.querySelector(".brand .logo");
+    try { if (logo && logo.src) doc.addImage(logo.src, "PNG", x, y, 34, 34); } catch (e) {}
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(20, 25, 60);
+    doc.text("Annexe 3 : Fiche Incident sécurité", x + 44, y + 22);
+    y += 44;
+
+    pairRow("Date de déclaration", fmtDay(i.declDate), "Date de survenue", fmtDay(i.occDate));
+
+    sectionHeader("Catégorisation");
+    checkRow(["Système et réseau", "Sécurité des données", "Ressources humaines", "Éthique", "Opérationnel"], i.category);
+
+    sectionHeader("Classification");
+    checkRow(["Mineur", "Modéré", "Majeur"], i.severity);
+
+    sectionHeader("Déclarant");
+    textBlock(i.declarant);
+
+    sectionHeader("Détails Incident");
+    textBlock(i.details);
+    labelledBlock("Causes de l'incident", i.causes);
+    labelledBlock("Analyse d'impact", i.impact);
+    labelledBlock("Solution provisoire", i.solProv);
+    labelledBlock("Solution définitive", i.solDef);
+
+    sectionHeader("Implication de ressources externes pour la résolution");
+    checkRow(["Oui", "Non"], i.external);
+
+    sectionHeader("Mise en œuvre de l'action");
+    pairRow("Nom et prénom", i.respName, "Titre / Qualité", i.respTitle);
+    textBlock("Date de mise en œuvre : " + (i.actionDate ? fmtDay(i.actionDate) : "-"));
+
+    sectionHeader("Suivi de l'action");
+    pairRow("Nom et prénom", i.followName, "Poste", i.followTitle);
+    textBlock("Dates de suivi et commentaires : " + (i.followNotes || "-"));
+
+    sectionHeader("Coût de l'incident");
+    textBlock("Temps : " + (i.hours || 0) + " heure(s)");
+
+    sectionHeader("Clôturé par");
+    pairRow("Nom et prénom", i.closedBy, "Poste", i.closedByTitle);
+    textBlock("Date de clôture : " + (i.status === "Clôturé" ? fmtDay(i.closedDate) : "-"));
+
     doc.save("Incident_" + (i.declDate || "date") + ".pdf");
   }
 

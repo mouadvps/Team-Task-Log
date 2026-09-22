@@ -291,8 +291,17 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
         <label>Permanent fix<textarea id="inc-def" rows="3"></textarea></label>
         <div class="row">
           <label>Owner (name)<input id="inc-resp" maxlength="60" placeholder="e.g. Mouad ABOUSSIBER"></label>
-          <label>Owner title<input id="inc-resptitle" maxlength="60"></label>
+          <label>Owner title<input id="inc-resptitle" maxlength="60" placeholder="e.g. Responsable Administrateur Système et Réseaux"></label>
+          <label>Date implemented<input id="inc-actiondate" type="date"></label>
+        </div>
+        <div class="row">
+          <label>Follow-up by (name)<input id="inc-followname" maxlength="60"></label>
+          <label>Follow-up title<input id="inc-followtitle" maxlength="60" placeholder="e.g. Directeur technique"></label>
+          <label>Follow-up dates &amp; comments<input id="inc-follownotes" maxlength="140"></label>
+        </div>
+        <div class="row">
           <label>Closed by<input id="inc-closedby" maxlength="60"></label>
+          <label>Closed by title<input id="inc-closedbytitle" maxlength="60"></label>
           <label>Date closed<input id="inc-closeddate" type="date"></label>
         </div>
         <div class="actions"><button class="btn" type="submit" id="inc-go">Save incident</button></div>
@@ -521,7 +530,7 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
   });
 })();
 </script>
-<script src="astreinte.js?v=8"></script>
-<script src="hr.js?v=8"></script>
+<script src="astreinte.js?v=9"></script>
+<script src="hr.js?v=9"></script>
 </body>
 </html>
