@@ -42,6 +42,7 @@
   if ($("t-hr")) $("t-hr").addEventListener("click", function () { setTab("hr"); });
   if (location.hash === "#astreinte") setTab("astreinte");
   if (location.hash === "#hr") setTab("hr");
+  window.APP_SET_TAB = setTab;
 
   if (!window.firebase || !firebase.apps || !firebase.apps.length) { var an = $("astr-now"); if (an) an.innerHTML = "<h2>Astreinte this week</h2><p class=\"note\">Astreinte data is not available (Firebase not initialised).</p>"; return; }
   var fs = firebase.firestore(), auth = firebase.auth();

@@ -12,6 +12,7 @@
   if (!$("view-hr")) return; // markup not present in this build
   if (!window.firebase || !firebase.apps || !firebase.apps.length) {
     var m = $("hr-msg"); if (m) m.textContent = "HR data is not available (Firebase not initialised).";
+    var inow = $("inc-now"); if (inow) inow.innerHTML = "<h2>Incidents</h2><p class=\"note\">Incident data is not available (Firebase not initialised).</p>";
     return;
   }
   var fs = firebase.firestore(), auth = firebase.auth();
@@ -204,8 +205,30 @@
     if (p) { var i = incidents[p]; if (i) exportIncidentPdf(Object.assign({ id: p }, i)); }
   });
 
+  // ---------- Incidents summary card on the Tasks dashboard ----------
+  function renderIncNow() {
+    var el = $("inc-now"); if (!el) return;
+    var all = Object.keys(incidents).map(function (id) { var v = incidents[id]; return Object.assign({ id: id }, v); });
+    var open = all.filter(function (i) { return i.status !== "Clôturé"; }).sort(function (a, b) { return (b.declDate || "") < (a.declDate || "") ? -1 : 1; });
+    var h = '<div class="nowhead"><h2>Incidents</h2><button class="btn ghost" type="button" id="inc-now-go">Open incidents</button></div>';
+    if (!open.length) {
+      h += '<p class="note" style="margin:0">No open incident right now.</p>';
+    } else {
+      h += '<div class="absent">' + open.slice(0, 4).map(function (i) {
+        return '<span class="pick" aria-pressed="true"><span class="chip ' + sevClass(i.severity) + '" style="margin-right:6px">' + esc(i.severity) + '</span>' + esc(i.category) + ' &middot; ' + fmtDay(i.declDate) + '</span>';
+      }).join("") + "</div>";
+      if (open.length > 4) h += '<p class="note" style="margin:6px 0 0">+' + (open.length - 4) + " more open.</p>";
+    }
+    el.innerHTML = h;
+    var b = $("inc-now-go");
+    if (b) b.addEventListener("click", function () {
+      if (window.APP_SET_TAB) window.APP_SET_TAB("hr");
+      setSub("incidents");
+    });
+  }
+
   // ---------- Render + live data ----------
-  window.renderHR = function () { renderLeaves(); renderIncidents(); };
+  window.renderHR = function () { renderLeaves(); renderIncidents(); renderIncNow(); };
   $("lv-fp").addEventListener("change", renderLeaves);
   $("lv-ft").addEventListener("change", renderLeaves);
   $("inc-fsev").addEventListener("change", renderIncidents);

@@ -64,6 +64,11 @@ form{display:grid;grid-template-columns:2fr 1fr 1fr 90px 1fr 1fr auto;gap:8px;al
 label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
 input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
 textarea{resize:vertical}
+.incform{display:flex;flex-direction:column;gap:14px;align-items:stretch;width:100%}
+.incform .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;width:100%}
+.incform label{width:100%}
+.incform textarea{min-height:76px}
+.incform .actions{display:flex;justify-content:flex-end}
 .btn{font:inherit;font-weight:600;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
 .btn.ghost{background:transparent;color:var(--muted);padding:4px 8px;font-weight:500}
 .btn.ghost:hover{color:var(--high)}
@@ -158,6 +163,7 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
   </div>
 
   <section class="panel now" id="astr-now"></section>
+  <section class="panel now" id="inc-now"></section>
 
   <div class="kpis" id="kpis"></div>
 
@@ -259,29 +265,31 @@ table.pay tr.sum td{border-top:2px solid var(--line);font-weight:600}
     <div class="kpis" id="inc-kpis"></div>
     <section class="panel">
       <h2>Report an incident</h2>
-      <form id="inc-f" class="stack" style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">
+      <form id="inc-f" class="incform">
+        <div class="row">
           <label>Date reported<input id="inc-decl" type="date" required></label>
           <label>Date occurred<input id="inc-occ" type="date" required></label>
           <label>Category<select id="inc-cat"><option>Système et réseau</option><option>Sécurité des données</option><option>Ressources humaines</option><option>Éthique</option><option selected>Opérationnel</option></select></label>
           <label>Severity<select id="inc-sev"><option>Mineur</option><option selected>Modéré</option><option>Majeur</option></select></label>
+        </div>
+        <div class="row">
           <label>Reported by<input id="inc-declarant" maxlength="60" placeholder="Name or alert source"></label>
           <label>External resources involved<select id="inc-ext"><option>Non</option><option>Oui</option></select></label>
           <label>Downtime (hours)<input id="inc-hours" type="number" min="0" step="0.25" value="0"></label>
           <label>Status<select id="inc-status"><option selected>Ouvert</option><option>Clôturé</option></select></label>
         </div>
-        <label class="wide">Details<textarea id="inc-details" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)" placeholder="What happened"></textarea></label>
-        <label class="wide">Cause<textarea id="inc-causes" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></textarea></label>
-        <label class="wide">Impact<textarea id="inc-impact" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></textarea></label>
-        <label class="wide">Temporary fix<textarea id="inc-prov" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></textarea></label>
-        <label class="wide">Permanent fix<textarea id="inc-def" rows="2" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></textarea></label>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">
+        <label>Details<textarea id="inc-details" rows="3" placeholder="What happened"></textarea></label>
+        <label>Cause<textarea id="inc-causes" rows="3"></textarea></label>
+        <label>Impact<textarea id="inc-impact" rows="3"></textarea></label>
+        <label>Temporary fix<textarea id="inc-prov" rows="3"></textarea></label>
+        <label>Permanent fix<textarea id="inc-def" rows="3"></textarea></label>
+        <div class="row">
           <label>Owner (name)<input id="inc-resp" maxlength="60" placeholder="e.g. Mouad ABOUSSIBER"></label>
           <label>Owner title<input id="inc-resptitle" maxlength="60"></label>
           <label>Closed by<input id="inc-closedby" maxlength="60"></label>
           <label>Date closed<input id="inc-closeddate" type="date"></label>
         </div>
-        <div><button class="btn" type="submit" id="inc-go">Save incident</button></div>
+        <div class="actions"><button class="btn" type="submit" id="inc-go">Save incident</button></div>
       </form>
       <p class="note" id="inc-msg" role="status"></p>
     </section>
